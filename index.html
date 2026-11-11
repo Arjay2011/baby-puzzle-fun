@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>开心拼图乐园</title>
+<style>
+  :root{
+    --accent:#FF8FAE;
+    --bg:#FFF6EC;
+    --card-shadow: 0 8px 0 rgba(0,0,0,0.08), 0 10px 24px rgba(0,0,0,0.12);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    overflow:hidden;
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    touch-action: manipulation;
+    -webkit-user-select:none; user-select:none;
+  }
+  #app{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .screen{
+    position:absolute; inset:0;
+    display:none;
+    flex-direction:column;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:30px;
+  }
+  .screen.active{ display:flex; }
+
+  /* ---------- 顶部栏 ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 14px 6px 14px;
+    flex-shrink:0;
+  }
+  .round-btn{
+    width:46px; height:46px; border-radius:50%;
+    background:#fff; border:none; box-shadow:var(--card-shadow);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; cursor:pointer;
+    flex-shrink:0;
+  }
+  .round-btn:active{ transform:scale(0.92); }
+  .title-text{
+    font-size:20px; font-weight:800; color:#5a4332;
+    text-align:center; flex:1; margin:0 8px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .spacer46{ width:46px; flex-shrink:0; }
+
+  /* ---------- 首页 ---------- */
+  .home-hero{
+    text-align:center; padding:6px 10px 10px;
+    flex-shrink:0;
+  }
+  .home-hero .big-title{
+    font-size:30px; font-weight:900; color:#5a4332; margin:4px 0 2px;
+    letter-spacing:1px;
+  }
+  .home-hero .sub-title{
+    font-size:15px; color:#9a8572; margin:0;
+  }
+  .grid-wrap{
+    flex:1;
+    padding:6px 18px 18px;
+    display:flex; flex-direction:column; gap:16px;
+    align-items:stretch;
+  }
+  .theme-card{
+    border:none; border-radius:28px;
+    display:flex; align-items:center; gap:16px;
+    padding:18px 20px;
+    box-shadow:var(--card-shadow);
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    transition:transform .08s;
+  }
+  .theme-card:active{ transform:scale(0.96); }
+  .theme-card .emoji-badge{
+    width:64px; height:64px; border-radius:50%;
+    background:rgba(255,255,255,0.55);
+    display:flex; align-items:center; justify-content:center;
+    font-size:36px; flex-shrink:0;
+  }
+  .theme-card .texts{ flex:1; }
+  .theme-card .t-name{ font-size:21px; font-weight:800; color:#4a3826; }
+  .theme-card .t-desc{ font-size:13px; color:#6b5744; margin-top:2px; }
+  .theme-card .arrow{ font-size:24px; color:#4a3826; opacity:.5; }
+
+  /* ---------- 难度选择 ---------- */
+  .diff-list{
+    flex:1; padding:10px 18px 18px; display:flex; flex-direction:column; gap:16px;
+  }
+  .diff-card{
+    border:none; border-radius:28px; padding:20px;
+    display:flex; align-items:center; gap:16px;
+    box-shadow:var(--card-shadow); cursor:pointer; font-family:inherit; text-align:left;
+    background:#fff;
+    border:4px solid transparent;
+  }
+  .diff-card:active{ transform:scale(0.96); }
+  .diff-card .pieces-badge{
+    width:60px; height:60px; border-radius:18px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; font-weight:900; color:#fff; flex-shrink:0;
+  }
+  .diff-card .texts{ flex:1; }
+  .diff-card .d-name{ font-size:19px; font-weight:800; color:#4a3826; }
+  .diff-card .d-stars{ font-size:15px; margin-top:4px; letter-spacing:2px; }
+
+  /* ---------- 关卡列表 ---------- */
+  .level-grid{
+    flex:1; padding:8px 16px 18px;
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    align-content:start;
+  }
+  .level-card{
+    border:none; border-radius:24px; background:#fff;
+    box-shadow:var(--card-shadow); cursor:pointer; padding:12px;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    position:relative;
+  }
+  .level-card:active{ transform:scale(0.95); }
+  .level-card img{ width:100%; aspect-ratio:1/1; border-radius:16px; display:block; }
+  .level-card .l-name{ font-size:15px; font-weight:700; color:#4a3826; }
+  .level-card .done-badge{
+    position:absolute; top:6px; right:6px;
+    background:#53C97E; color:#fff; width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+  }
+
+  /* ---------- 拼图页 ---------- */
+  .puzzle-wrap{
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    padding:6px 16px 10px; gap:10px; min-height:0;
+  }
+  .ref-box{
+    display:flex; align-items:center; gap:10px;
+    background:#fff; border-radius:20px; padding:8px 14px;
+    box-shadow:var(--card-shadow);
+    flex-shrink:0;
+  }
+  .ref-box img{ width:56px; height:56px; border-radius:12px; }
+  .ref-box .ref-label{ font-size:13px; color:#9a8572; }
+  .ref-box .ref-label b{ display:block; font-size:16px; color:#4a3826; }
+
+  #board-wrap{
+    flex-shrink:0;
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:var(--card-shadow);
+    background:#fff;
+    position:relative;
+  }
+  #board{
+    display:grid;
+    width:100%; height:100%;
+  }
+  .slot{
+    position:relative;
+    border:2px dashed rgba(0,0,0,0.18);
+    box-sizing:border-box;
+    overflow:hidden;
+  }
+  .slot .ghost{
+    position:absolute; inset:0;
+    opacity:0.16;
+    pointer-events:none;
+  }
+  .slot.filled{ border:none; }
+
+  #tray-wrap{
+    flex:1; width:100%;
+    min-height:0;
+    display:flex; flex-direction:column;
+    margin-top:4px;
+  }
+  #tray-label{
+    font-size:13px; color:#9a8572; text-align:center; margin-bottom:4px; flex-shrink:0;
+  }
+  #tray{
+    flex:1; overflow-y:auto;
+    display:flex; flex-wrap:wrap; justify-content:center; align-content:flex-start;
+    gap:14px; padding:6px 4px 10px;
+  }
+  .piece{
+    border-radius:14px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.18);
+    cursor:grab;
+    border:3px solid #fff;
+    touch-action:none;
+    background-color:#eee;
+  }
+  .piece.dragging{
+    box-shadow:0 10px 24px rgba(0,0,0,0.3);
+    z-index:999;
+  }
+
+  .bottom-actions{
+    display:flex; justify-content:center; gap:14px; padding:8px 0 2px; flex-shrink:0;
+  }
+  .pill-btn{
+    border:none; border-radius:22px; padding:10px 20px;
+    font-size:14px; font-weight:700; color:#fff;
+    box-shadow:0 4px 0 rgba(0,0,0,0.1);
+    cursor:pointer;
+  }
+  .pill-btn:active{ transform:scale(0.95); }
+  .pill-btn.secondary{ background:#B9ADA0; }
+  .pill-btn.primary{ background:var(--accent); }
+
+  /* ---------- 完成弹窗 ---------- */
+  #win-modal{
+    position:fixed; inset:0; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.45);
+    z-index:2000;
+  }
+  #win-modal.show{ display:flex; }
+  .win-card{
+    background:#fff; border-radius:30px; padding:30px 26px;
+    text-align:center; width:min(84vw, 320px);
+    box-shadow:0 20px 40px rgba(0,0,0,0.3);
+    animation:popIn .35s ease;
+  }
+  @keyframes popIn{
+    0%{ transform:scale(0.6); opacity:0; }
+    70%{ transform:scale(1.05); opacity:1; }
+    100%{ transform:scale(1); }
+  }
+  .win-card .win-emoji{ font-size:56px; }
+  .win-card .win-title{ font-size:22px; font-weight:900; color:#4a3826; margin:6px 0 4px; }
+  .win-card .win-sub{ font-size:14px; color:#9a8572; margin-bottom:16px; }
+  .win-card .win-actions{ display:flex; flex-direction:column; gap:10px; }
+
+  /* 五彩纸屑 */
+  .confetti{
+    position:fixed; top:-30px; font-size:24px; pointer-events:none; z-index:2500;
+    animation:fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(360deg); opacity:0.2; }
+  }
+
+  /* 手机横屏/宽屏自适配：拼图区左右布局 */
+  @media (min-width:640px){
+    .puzzle-wrap{ flex-direction:row; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+    .ref-box{ flex-direction:column; order:0; }
+    #board-wrap{ order:1; }
+    #tray-wrap{ order:2; width:260px; flex:0 0 260px; max-height:100%; }
+  }
+</style>
+</head>
+<body>
+<div id="app" data-qw-id="e1">
+
+  <!-- 首页：选主题 -->
+  <div class="screen active" id="screen-home" data-qw-id="e2">
+    <div class="topbar" data-qw-id="e3">
+      <div class="spacer46" data-qw-id="e4"></div>
+      <div class="title-text" data-qw-id="e5">🧩 开心拼图乐园</div>
+      <button class="round-btn" id="btn-mute-home" title="声音开关" data-qw-id="e6">🔊</button>
+    </div>
+    <div class="home-hero" data-qw-id="e7">
+      <div class="big-title" data-qw-id="e8">选一个主题玩吧！</div>
+      <div class="sub-title" data-qw-id="e9">小猫小狗、水果蔬菜，一起拼拼看～</div>
+    </div>
+    <div class="grid-wrap" id="theme-list" data-qw-id="e10"></div>
+  </div>
+
+  <!-- 难度选择 -->
+  <div class="screen" id="screen-difficulty" data-qw-id="e11">
+    <div class="topbar" data-qw-id="e12">
+      <button class="round-btn" id="btn-back-diff" data-qw-id="e13">⬅️</button>
+      <div class="title-text" id="diff-title" data-qw-id="e14">选择难度</div>
+      <div class="spacer46" data-qw-id="e15"></div>
+    </div>
+    <div class="diff-list" id="diff-list" data-qw-id="e16"></div>
+  </div>
+
+  <!-- 关卡列表 -->
+  <div class="screen" id="screen-levels" data-qw-id="e17">
+    <div class="topbar" data-qw-id="e18">
+      <button class="round-btn" id="btn-back-levels" data-qw-id="e19">⬅️</button>
+      <div class="title-text" id="levels-title" data-qw-id="e20">选择图案</div>
+      <div class="spacer46" data-qw-id="e21"></div>
+    </div>
+    <div class="level-grid" id="level-grid" data-qw-id="e22"></div>
+  </div>
+
+  <!-- 拼图游戏页 -->
+  <div class="screen" id="screen-puzzle" data-qw-id="e23">
+    <div class="topbar" data-qw-id="e24">
+      <button class="round-btn" id="btn-back-puzzle" data-qw-id="e25">⬅️</button>
+      <div class="title-text" id="puzzle-title" data-qw-id="e26">拼图</div>
+      <button class="round-btn" id="btn-mute-puzzle" data-qw-id="e27">🔊</button>
+    </div>
+    <div class="puzzle-wrap" data-qw-id="e28">
+      <div class="ref-box" data-qw-id="e29">
+        <img id="ref-img" src="" alt="参考图" data-qw-id="e30">
+        <div class="ref-label" data-qw-id="e31">参考图<br data-qw-id="e32"><b id="ref-name" data-qw-id="e33"></b></div>
+      </div>
+      <div id="board-wrap" data-qw-id="e34">
+        <div id="board" data-qw-id="e35"></div>
+      </div>
+      <div id="tray-wrap" data-qw-id="e36">
+        <div id="tray-label" data-qw-id="e37">把下面的拼图块拖到上面对应的位置吧</div>
+        <div id="tray" data-qw-id="e38"></div>
+      </div>
+    </div>
+    <div class="bottom-actions" data-qw-id="e39">
+      <button class="pill-btn secondary" id="btn-reshuffle" data-qw-id="e40">🔄 重新开始</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 完成弹窗 -->
+<div id="win-modal" data-qw-id="e41">
+  <div class="win-card" data-qw-id="e42">
+    <div class="win-emoji" data-qw-id="e43">🎉</div>
+    <div class="win-title" data-qw-id="e44">拼好啦！真棒！</div>
+    <div class="win-sub" id="win-sub" data-qw-id="e45">你完成了这幅拼图</div>
+    <div class="win-actions" data-qw-id="e46">
+      <button class="pill-btn primary" id="btn-next-level" data-qw-id="e47">下一个图案 ➜</button>
+      <button class="pill-btn secondary" id="btn-replay" data-qw-id="e48">再玩一次</button>
+      <button class="pill-btn secondary" id="btn-to-levels" data-qw-id="e49">返回选图</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ======================================================
+   1. 卡通图案数据（纯 SVG 绘制，无需网络、无版权问题）
+   ====================================================== */
+
+function bgRect(color){
+  return '<rect x="0" y="0" width="300" height="300" rx="30" fill="'+color+'"/>';
+}
+function wrapSvg(inner){
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">'+inner+'</svg>';
+}
+function svgToUrl(svgStr){
+  return "data:image/svg+xml;utf8," + encodeURIComponent(svgStr);
+}
+
+const STROKE = '#3a2b1d';
+
+/* ---- 动物 ---- */
+function imgCat(){
+  return wrapSvg(bgRect('#FFE8C2') + `
+    <polygon points="92,98 112,50 142,104" fill="#FFB454" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <polygon points="208,98 188,50 158,104" fill="#FFB454" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <polygon points="98,92 112,64 126,94" fill="#FFD9A0"/>
+    <polygon points="202,92 188,64 174,94" fill="#FFD9A0"/>
+    <circle cx="150" cy="168" r="80" fill="#FFB454" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="118" cy="158" r="11" fill="${STROKE}"/>
+    <circle cx="182" cy="158" r="11" fill="${STROKE}"/>
+    <polygon points="150,182 139,195 161,195" fill="#F27C9E" stroke="${STROKE}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M150 195 Q150 204 138 204" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M150 195 Q150 204 162 204" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <line x1="68" y1="172" x2="24" y2="162" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="68" y1="184" x2="22" y2="186" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="232" y1="172" x2="276" y2="162" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="232" y1="184" x2="278" y2="186" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>
+  `);
+}
+function imgDog(){
+  return wrapSvg(bgRect('#D8F0FF') + `
+    <ellipse cx="78" cy="150" rx="34" ry="52" fill="#C98A52" stroke="${STROKE}" stroke-width="6" transform="rotate(-18 78 150)"/>
+    <ellipse cx="222" cy="150" rx="34" ry="52" fill="#C98A52" stroke="${STROKE}" stroke-width="6" transform="rotate(18 222 150)"/>
+    <circle cx="150" cy="170" r="80" fill="#E7B377" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="122" cy="162" r="11" fill="${STROKE}"/>
+    <circle cx="178" cy="162" r="11" fill="${STROKE}"/>
+    <ellipse cx="150" cy="190" rx="38" ry="28" fill="#FFF3E0" stroke="${STROKE}" stroke-width="5"/>
+    <ellipse cx="150" cy="182" rx="16" ry="11" fill="${STROKE}"/>
+    <path d="M150 192 Q150 202 136 204" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M150 192 Q150 202 164 204" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  `);
+}
+function imgRabbit(){
+  return wrapSvg(bgRect('#FFE9F3') + `
+    <ellipse cx="118" cy="68" rx="26" ry="62" fill="#FFFFFF" stroke="${STROKE}" stroke-width="6" transform="rotate(-10 118 68)"/>
+    <ellipse cx="182" cy="68" rx="26" ry="62" fill="#FFFFFF" stroke="${STROKE}" stroke-width="6" transform="rotate(10 182 68)"/>
+    <ellipse cx="118" cy="70" rx="12" ry="42" fill="#FFC2D8" transform="rotate(-10 118 70)"/>
+    <ellipse cx="182" cy="70" rx="12" ry="42" fill="#FFC2D8" transform="rotate(10 182 70)"/>
+    <circle cx="150" cy="178" r="78" fill="#FFFFFF" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="122" cy="168" r="10" fill="${STROKE}"/>
+    <circle cx="178" cy="168" r="10" fill="${STROKE}"/>
+    <polygon points="150,190 141,201 159,201" fill="#F27C9E" stroke="${STROKE}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M150 201 Q150 209 140 209" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M150 201 Q150 209 160 209" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  `);
+}
+function imgBear(){
+  return wrapSvg(bgRect('#E8E3FF') + `
+    <circle cx="90" cy="88" r="32" fill="#A5683C" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="210" cy="88" r="32" fill="#A5683C" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="90" cy="88" r="14" fill="#C9986A"/>
+    <circle cx="210" cy="88" r="14" fill="#C9986A"/>
+    <circle cx="150" cy="172" r="82" fill="#A5683C" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="121" cy="162" r="11" fill="${STROKE}"/>
+    <circle cx="179" cy="162" r="11" fill="${STROKE}"/>
+    <ellipse cx="150" cy="190" rx="36" ry="26" fill="#C9986A" stroke="${STROKE}" stroke-width="5"/>
+    <ellipse cx="150" cy="182" rx="14" ry="10" fill="${STROKE}"/>
+    <path d="M150 190 Q150 200 138 202" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M150 190 Q150 200 162 202" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  `);
+}
+function imgPig(){
+  return wrapSvg(bgRect('#FFF0E0') + `
+    <polygon points="98,92 82,56 128,86" fill="#FFB5C5" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <polygon points="202,92 218,56 172,86" fill="#FFB5C5" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <circle cx="150" cy="172" r="80" fill="#FFC6D6" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="120" cy="160" r="10" fill="${STROKE}"/>
+    <circle cx="180" cy="160" r="10" fill="${STROKE}"/>
+    <rect x="118" y="180" width="64" height="44" rx="22" fill="#FF9EB8" stroke="${STROKE}" stroke-width="5"/>
+    <circle cx="138" cy="202" r="6" fill="${STROKE}"/>
+    <circle cx="162" cy="202" r="6" fill="${STROKE}"/>
+  `);
+}
+
+/* ---- 水果 ---- */
+function imgApple(){
+  return wrapSvg(bgRect('#E9FFE0') + `
+    <path d="M150 230 C90 230 70 180 78 140 C84 112 112 98 138 108 C144 100 156 100 162 108 C188 98 216 112 222 140 C230 180 210 230 150 230 Z" fill="#EE5F5F" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M150 108 C150 90 160 78 176 72" stroke="#7A4A28" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M176 78 C196 70 208 84 196 98 C184 108 168 96 176 78 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <ellipse cx="118" cy="150" rx="14" ry="20" fill="#FFFFFF" opacity="0.5"/>
+  `);
+}
+function imgBanana(){
+  return wrapSvg(bgRect('#FFF9DB') + `
+    <path d="M90 210 C70 160 86 100 140 76 C150 72 158 80 152 90 C110 110 100 158 118 198 C150 240 206 226 224 186 C230 174 246 180 240 196 C222 238 170 258 128 240 C110 232 98 224 90 210 Z" fill="#FFD23F" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M224 186 C232 182 240 186 240 196 C238 204 228 206 222 198" fill="#8A5A2B" stroke="${STROKE}" stroke-width="3"/>
+    <path d="M118 128 C128 150 128 176 114 198" stroke="#E8B923" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+  `);
+}
+function imgGrape(){
+  return wrapSvg(bgRect('#F3E8FF') + `
+    <path d="M148 70 C150 52 164 44 176 50" stroke="#5EC26A" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M176 50 C190 44 200 56 190 68 C180 78 164 68 176 50 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <g fill="#A567D6" stroke="${STROKE}" stroke-width="5">
+      <circle cx="150" cy="96" r="26"/>
+      <circle cx="118" cy="132" r="26"/>
+      <circle cx="182" cy="132" r="26"/>
+      <circle cx="150" cy="150" r="26"/>
+      <circle cx="90" cy="168" r="26"/>
+      <circle cx="150" cy="186" r="26"/>
+      <circle cx="210" cy="168" r="26"/>
+      <circle cx="120" cy="204" r="26"/>
+      <circle cx="180" cy="204" r="26"/>
+      <circle cx="150" cy="226" r="26"/>
+    </g>
+    <ellipse cx="108" cy="120" rx="7" ry="10" fill="#FFFFFF" opacity="0.45"/>
+  `);
+}
+function imgOrange(){
+  return wrapSvg(bgRect('#FFEFD5') + `
+    <path d="M150 70 C150 58 158 50 170 50" stroke="#5EC26A" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <circle cx="150" cy="166" r="88" fill="#FFA23E" stroke="${STROKE}" stroke-width="6"/>
+    <circle cx="150" cy="166" r="12" fill="#E8822A" stroke="${STROKE}" stroke-width="3"/>
+    <path d="M150 90 L150 242 M90 108 L210 224 M210 108 L90 224 M110 90 Q150 166 190 242 M190 90 Q150 166 110 242" stroke="#E8822A" stroke-width="2" opacity="0.35" fill="none"/>
+    <ellipse cx="118" cy="128" rx="16" ry="22" fill="#FFFFFF" opacity="0.35"/>
+  `);
+}
+function imgStrawberry(){
+  return wrapSvg(bgRect('#FFE0EC') + `
+    <polygon points="110,66 150,96 190,66 170,100 205,92 172,116 150,104 128,116 95,92 130,100" fill="#5EC26A" stroke="${STROKE}" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M150 100 C90 100 70 150 90 196 C106 232 130 244 150 244 C170 244 194 232 210 196 C230 150 210 100 150 100 Z" fill="#EE3F5B" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <g fill="#FFE98A">
+      <ellipse cx="122" cy="146" rx="4" ry="7"/>
+      <ellipse cx="150" cy="134" rx="4" ry="7"/>
+      <ellipse cx="178" cy="146" rx="4" ry="7"/>
+      <ellipse cx="110" cy="178" rx="4" ry="7"/>
+      <ellipse cx="140" cy="172" rx="4" ry="7"/>
+      <ellipse cx="166" cy="176" rx="4" ry="7"/>
+      <ellipse cx="190" cy="176" rx="4" ry="7"/>
+      <ellipse cx="130" cy="206" rx="4" ry="7"/>
+      <ellipse cx="160" cy="210" rx="4" ry="7"/>
+      <ellipse cx="150" cy="226" rx="4" ry="7"/>
+    </g>
+  `);
+}
+
+/* ---- 蔬菜 ---- */
+function imgCarrot(){
+  return wrapSvg(bgRect('#FFF3D6') + `
+    <path d="M118 70 L130 110 L108 108 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M150 62 L156 110 L134 110 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M182 70 L170 110 L192 108 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M100 112 L200 112 L150 240 Z" fill="#FF9A3C" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <line x1="118" y1="140" x2="150" y2="140" stroke="#E07F28" stroke-width="4" stroke-linecap="round"/>
+    <line x1="124" y1="168" x2="156" y2="168" stroke="#E07F28" stroke-width="4" stroke-linecap="round"/>
+    <line x1="130" y1="196" x2="158" y2="196" stroke="#E07F28" stroke-width="4" stroke-linecap="round"/>
+  `);
+}
+function imgTomato(){
+  return wrapSvg(bgRect('#FFE5E5') + `
+    <circle cx="150" cy="168" r="84" fill="#EE4B4B" stroke="${STROKE}" stroke-width="6"/>
+    <g fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round">
+      <polygon points="150,66 160,90 136,90"/>
+      <polygon points="118,78 136,98 112,102"/>
+      <polygon points="182,78 164,98 188,102"/>
+      <polygon points="110,100 130,106 116,118"/>
+      <polygon points="190,100 170,106 184,118"/>
+    </g>
+    <ellipse cx="122" cy="140" rx="16" ry="22" fill="#FFFFFF" opacity="0.3"/>
+  `);
+}
+function imgCorn(){
+  return wrapSvg(bgRect('#FFF9E0') + `
+    <path d="M150 54 C190 54 206 100 196 150 C188 196 170 240 150 250 C130 240 112 196 104 150 C94 100 110 54 150 54 Z" fill="#FFD23F" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <g fill="#F0B82A">
+      <circle cx="128" cy="92" r="6"/><circle cx="150" cy="88" r="6"/><circle cx="172" cy="92" r="6"/>
+      <circle cx="122" cy="116" r="6"/><circle cx="146" cy="112" r="6"/><circle cx="170" cy="116" r="6"/><circle cx="188" cy="124" r="6"/>
+      <circle cx="118" cy="142" r="6"/><circle cx="142" cy="138" r="6"/><circle cx="166" cy="142" r="6"/><circle cx="186" cy="150" r="6"/>
+      <circle cx="120" cy="170" r="6"/><circle cx="144" cy="166" r="6"/><circle cx="166" cy="170" r="6"/><circle cx="182" cy="178" r="6"/>
+      <circle cx="126" cy="196" r="6"/><circle cx="148" cy="194" r="6"/><circle cx="168" cy="198" r="6"/>
+      <circle cx="134" cy="220" r="6"/><circle cx="154" cy="218" r="6"/>
+    </g>
+    <path d="M110 70 C92 56 70 60 64 82 C84 90 100 82 110 70 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M190 70 C208 56 230 60 236 82 C216 90 200 82 190 70 Z" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+  `);
+}
+function imgEggplant(){
+  return wrapSvg(bgRect('#F0E6FF') + `
+    <path d="M150 64 C156 50 172 46 182 56" stroke="#5EC26A" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <polygon points="134,58 166,58 176,80 124,80" fill="#5EC26A" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M150 78 C204 78 220 128 206 176 C194 216 170 244 150 244 C130 244 106 216 94 176 C80 128 96 78 150 78 Z" fill="#8A5FBF" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <ellipse cx="126" cy="130" rx="14" ry="30" fill="#FFFFFF" opacity="0.3"/>
+  `);
+}
+function imgPepper(){
+  return wrapSvg(bgRect('#E8FFEA') + `
+    <path d="M148 58 L150 90" stroke="#7A4A28" stroke-width="8" stroke-linecap="round"/>
+    <path d="M150 62 C160 50 176 50 180 62 C184 72 172 80 150 90" fill="#8A5A2B" stroke="${STROKE}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M150 88 C110 88 86 120 92 156 C84 172 92 196 118 202 C122 222 150 236 150 236 C150 236 178 222 182 202 C208 196 216 172 208 156 C214 120 190 88 150 88 Z"
+      fill="#57C45C" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>
+    <ellipse cx="122" cy="130" rx="14" ry="24" fill="#FFFFFF" opacity="0.3"/>
+  `);
+}
+
+/* ======================================================
+   2. 主题/图案/难度 数据
+   ====================================================== */
+const THEMES = [
+  { id:'animal', name:'动物朋友', emoji:'🐾', color:'#FFE1EC',
+    items:[
+      {id:'cat', name:'小猫', draw:imgCat},
+      {id:'dog', name:'小狗', draw:imgDog},
+      {id:'rabbit', name:'兔子', draw:imgRabbit},
+      {id:'bear', name:'小熊', draw:imgBear},
+      {id:'pig', name:'小猪', draw:imgPig}
+    ]
+  },
+  { id:'fruit', name:'水果乐园', emoji:'🍎', color:'#FFF1CF',
+    items:[
+      {id:'apple', name:'苹果', draw:imgApple},
+      {id:'banana', name:'香蕉', draw:imgBanana},
+      {id:'grape', name:'葡萄', draw:imgGrape},
+      {id:'orange', name:'橙子', draw:imgOrange},
+      {id:'strawberry', name:'草莓', draw:imgStrawberry}
+    ]
+  },
+  { id:'veggie', name:'蔬菜花园', emoji:'🥕', color:'#E3FBE0',
+    items:[
+      {id:'carrot', name:'胡萝卜', draw:imgCarrot},
+      {id:'tomato', name:'番茄', draw:imgTomato},
+      {id:'corn', name:'玉米', draw:imgCorn},
+      {id:'eggplant', name:'茄子', draw:imgEggplant},
+      {id:'pepper', name:'青椒', draw:imgPepper}
+    ]
+  }
+];
+
+const DIFFICULTIES = [
+  { id:2, name:'2片 入门', stars:'⭐', cols:2, rows:1, color:'#7BC9A3' },
+  { id:3, name:'3片 进阶', stars:'⭐⭐', cols:3, rows:1, color:'#6FB3E0' },
+  { id:4, name:'4片 挑战', stars:'⭐⭐⭐', cols:2, rows:2, color:'#F2A65A' }
+];
+
+function getTheme(id){ return THEMES.find(t=>t.id===id); }
+function getDifficulty(id){ return DIFFICULTIES.find(d=>d.id===id); }
+
+/* ======================================================
+   3. 声音（WebAudio，无需外部文件）
+   ====================================================== */
+let audioCtx = null;
+let muted = (localStorage.getItem('puzzleMuted') === '1');
+
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(audioCtx && audioCtx.state === 'suspended'){ audioCtx.resume(); }
+}
+function tone(freq, start, dur, type, vol){
+  if(muted || !audioCtx) return;
+  const t0 = audioCtx.currentTime + start;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(vol||0.2, t0+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function sndPlace(){ tone(720,0,0.12,'triangle',0.22); }
+function sndWrong(){ tone(260,0,0.16,'sine',0.14); }
+function sndWin(){
+  tone(523,0,0.18,'triangle',0.22);
+  tone(659,0.15,0.18,'triangle',0.22);
+  tone(784,0.3,0.26,'triangle',0.24);
+  tone(988,0.5,0.3,'triangle',0.22);
+}
+
+function updateMuteButtons(){
+  const icon = muted ? '🔇' : '🔊';
+  document.getElementById('btn-mute-home').textContent = icon;
+  document.getElementById('btn-mute-puzzle').textContent = icon;
+}
+function toggleMute(){
+  muted = !muted;
+  localStorage.setItem('puzzleMuted', muted ? '1' : '0');
+  updateMuteButtons();
+  if(!muted) ensureAudio();
+}
+
+/* ======================================================
+   4. 进度存储
+   ====================================================== */
+function progressKey(themeId, diffId, itemId){ return 'done_'+themeId+'_'+diffId+'_'+itemId; }
+function isDone(themeId, diffId, itemId){ return localStorage.getItem(progressKey(themeId,diffId,itemId)) === '1'; }
+function setDone(themeId, diffId, itemId){ localStorage.setItem(progressKey(themeId,diffId,itemId), '1'); }
+
+/* ======================================================
+   5. 页面路由
+   ====================================================== */
+const screens = {};
+['home','difficulty','levels','puzzle'].forEach(k=>{
+  screens[k] = document.getElementById('screen-'+k);
+});
+function showScreen(name){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+const state = { themeId:null, diffId:null, levelIndex:0 };
+
+/* ---- 首页渲染 ---- */
+function renderHome(){
+  const wrap = document.getElementById('theme-list');
+  wrap.innerHTML = '';
+  THEMES.forEach(theme=>{
+    const btn = document.createElement('button');
+    btn.className = 'theme-card';
+    btn.style.background = theme.color;
+    btn.innerHTML = `
+      <div class="emoji-badge">${theme.emoji}</div>
+      <div class="texts">
+        <div class="t-name">${theme.name}</div>
+        <div class="t-desc">${theme.items.map(i=>i.name).join(' · ')}</div>
+      </div>
+      <div class="arrow">›</div>
+    `;
+    btn.addEventListener('click', ()=>{
+      ensureAudio();
+      state.themeId = theme.id;
+      renderDifficulty();
+      showScreen('difficulty');
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+/* ---- 难度页渲染 ---- */
+function renderDifficulty(){
+  const theme = getTheme(state.themeId);
+  document.getElementById('diff-title').textContent = theme.emoji + ' ' + theme.name;
+  const wrap = document.getElementById('diff-list');
+  wrap.innerHTML = '';
+  DIFFICULTIES.forEach(diff=>{
+    const btn = document.createElement('button');
+    btn.className = 'diff-card';
+    btn.innerHTML = `
+      <div class="pieces-badge" style="background:${diff.color}">${diff.id}片</div>
+      <div class="texts">
+        <div class="d-name">${diff.name}</div>
+        <div class="d-stars">${diff.stars}</div>
+      </div>
+      <div class="arrow" style="font-size:24px;opacity:.4;">›</div>
+    `;
+    btn.addEventListener('click', ()=>{
+      ensureAudio();
+      state.diffId = diff.id;
+      renderLevels();
+      showScreen('levels');
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+/* ---- 关卡列表渲染 ---- */
+function renderLevels(){
+  const theme = getTheme(state.themeId);
+  const diff = getDifficulty(state.diffId);
+  document.getElementById('levels-title').textContent = theme.name + ' · ' + diff.name;
+  const wrap = document.getElementById('level-grid');
+  wrap.innerHTML = '';
+  theme.items.forEach((item, idx)=>{
+    const card = document.createElement('button');
+    card.className = 'level-card';
+    const url = svgToUrl(item.draw());
+    const done = isDone(theme.id, diff.id, item.id);
+    card.innerHTML = `
+      ${done ? '<div class="done-badge">✓</div>' : ''}
+      <img src="${url}" alt="${item.name}">
+      <div class="l-name">${item.name}</div>
+    `;
+    card.addEventListener('click', ()=>{
+      ensureAudio();
+      state.levelIndex = idx;
+      startPuzzle();
+    });
+    wrap.appendChild(card);
+  });
+}
+
+/* ======================================================
+   6. 拼图核心逻辑
+   ====================================================== */
+let puzzleCtx = null; // 当前拼图运行状态
+
+function startPuzzle(){
+  const theme = getTheme(state.themeId);
+  const diff = getDifficulty(state.diffId);
+  const item = theme.items[state.levelIndex];
+
+  document.getElementById('puzzle-title').textContent = item.name;
+  document.getElementById('ref-name').textContent = item.name;
+  const svgStr = item.draw();
+  const url = svgToUrl(svgStr);
+  document.getElementById('ref-img').src = url;
+
+  buildBoard(diff, url, theme.id, diff.id, item.id);
+  showScreen('puzzle');
+}
+
+function computeBoardSize(){
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const maxByWidth = vw * 0.8;
+  const maxByHeight = vh * 0.42;
+  return Math.max(180, Math.min(340, maxByWidth, maxByHeight));
+}
+
+function buildBoard(diff, imgUrl, themeId, diffId, itemId){
+  const boardWrap = document.getElementById('board-wrap');
+  const board = document.getElementById('board');
+  const tray = document.getElementById('tray');
+  board.innerHTML = '';
+  tray.innerHTML = '';
+
+  const size = computeBoardSize();
+  boardWrap.style.width = size+'px';
+  boardWrap.style.height = size+'px';
+  board.style.gridTemplateColumns = `repeat(${diff.cols}, 1fr)`;
+  board.style.gridTemplateRows = `repeat(${diff.rows}, 1fr)`;
+
+  const pieceW = size / diff.cols;
+  const pieceH = size / diff.rows;
+  const total = diff.cols * diff.rows;
+
+  const slots = [];
+  for(let r=0; r<diff.rows; r++){
+    for(let c=0; c<diff.cols; c++){
+      const index = r*diff.cols + c;
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.index = index;
+      const ghost = document.createElement('div');
+      ghost.className = 'ghost';
+      ghost.style.backgroundImage = `url("${imgUrl}")`;
+      ghost.style.backgroundSize = size+'px '+size+'px';
+      ghost.style.backgroundPosition = (-c*pieceW)+'px '+(-r*pieceH)+'px';
+      slot.appendChild(ghost);
+      board.appendChild(slot);
+      slots.push(slot);
+    }
+  }
+
+  const order = [];
+  for(let i=0;i<total;i++) order.push(i);
+  shuffle(order);
+
+  const pieceSize = Math.min(pieceW, pieceH) * 0.94;
+  const pieces = [];
+  order.forEach(index=>{
+    const r = Math.floor(index / diff.cols);
+    const c = index % diff.cols;
+    const piece = document.createElement('div');
+    piece.className = 'piece';
+    piece.dataset.correctIndex = index;
+    piece.style.width = pieceW+'px';
+    piece.style.height = pieceH+'px';
+    piece.style.backgroundImage = `url("${imgUrl}")`;
+    piece.style.backgroundSize = size+'px '+size+'px';
+    piece.style.backgroundPosition = (-c*pieceW)+'px '+(-r*pieceH)+'px';
+    tray.appendChild(piece);
+    pieces.push(piece);
+    attachDrag(piece);
+  });
+
+  puzzleCtx = {
+    themeId, diffId, itemId,
+    size, cols:diff.cols, rows:diff.rows, pieceW, pieceH,
+    total, filled:0, slots, tray
+  };
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+  }
+  // 避免洗牌后刚好和原顺序一致（可选，简单兜底）
+  return arr;
+}
+
+/* ---- 拖拽实现（Pointer Events，支持鼠标+触屏） ---- */
+function attachDrag(piece){
+  let startX=0, startY=0, origParent=null, origNext=null;
+  let curLeft=0, curTop=0;
+
+  function onDown(e){
+    if(piece.dataset.locked === '1') return;
+    ensureAudio();
+    const rect = piece.getBoundingClientRect();
+    origParent = piece.parentNode;
+    origNext = piece.nextSibling;
+
+    piece.setPointerCapture && piece.setPointerCapture(e.pointerId);
+
+    document.body.appendChild(piece);
+    piece.style.position = 'fixed';
+    piece.style.left = rect.left+'px';
+    piece.style.top = rect.top+'px';
+    piece.style.width = rect.width+'px';
+    piece.style.height = rect.height+'px';
+    piece.style.margin = '0';
+    piece.classList.add('dragging');
+
+    curLeft = rect.left; curTop = rect.top;
+    startX = e.clientX; startY = e.clientY;
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  function onMove(e){
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    piece.style.left = (curLeft+dx)+'px';
+    piece.style.top = (curTop+dy)+'px';
+  }
+
+  function onUp(e){
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    piece.classList.remove('dragging');
+
+    const rect = piece.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+
+    let bestSlot = null, bestDist = Infinity;
+    puzzleCtx.slots.forEach(slot=>{
+      if(slot.classList.contains('filled')) return;
+      const sr = slot.getBoundingClientRect();
+      const scx = sr.left + sr.width/2;
+      const scy = sr.top + sr.height/2;
+      const dist = Math.hypot(cx-scx, cy-scy);
+      if(dist < bestDist){ bestDist = dist; bestSlot = slot; }
+    });
+
+    const threshold = Math.max(puzzleCtx.pieceW, puzzleCtx.pieceH) * 0.65;
+
+    if(bestSlot && bestDist < threshold){
+      const slotIndex = parseInt(bestSlot.dataset.index,10);
+      const correctIndex = parseInt(piece.dataset.correctIndex,10);
+      if(slotIndex === correctIndex){
+        lockPieceIntoSlot(piece, bestSlot);
+        return;
+      } else {
+        sndWrong();
+        wiggle(piece);
+      }
+    }
+    returnToTray(piece, origParent, origNext);
+  }
+
+  piece.addEventListener('pointerdown', onDown);
+}
+
+function wiggle(el){
+  el.style.transition = 'transform .08s';
+  let n = 0;
+  const seq = [-8,8,-6,6,0];
+  function step(){
+    if(n >= seq.length){ el.style.transition=''; return; }
+    el.style.transform = `translateX(${seq[n]}px)`;
+    n++;
+    setTimeout(step, 70);
+  }
+  step();
+}
+
+function returnToTray(piece, origParent, origNext){
+  piece.style.position = '';
+  piece.style.left = '';
+  piece.style.top = '';
+  piece.style.width = puzzleCtx.pieceW+'px';
+  piece.style.height = puzzleCtx.pieceH+'px';
+  piece.style.margin = '';
+  if(origNext && origNext.parentNode === origParent){
+    origParent.insertBefore(piece, origNext);
+  } else {
+    origParent.appendChild(piece);
+  }
+}
+
+function lockPieceIntoSlot(piece, slot){
+  piece.dataset.locked = '1';
+  piece.style.position = 'absolute';
+  piece.style.left = '0';
+  piece.style.top = '0';
+  piece.style.width = '100%';
+  piece.style.height = '100%';
+  piece.style.margin = '0';
+  piece.style.border = 'none';
+  piece.style.boxShadow = 'none';
+  piece.style.cursor = 'default';
+  piece.style.transform = 'scale(1.08)';
+  slot.appendChild(piece);
+  slot.classList.add('filled');
+  const ghost = slot.querySelector('.ghost');
+  if(ghost) ghost.style.display = 'none';
+
+  requestAnimationFrame(()=>{
+    piece.style.transition = 'transform .18s ease';
+    piece.style.transform = 'scale(1)';
+  });
+
+  sndPlace();
+  puzzleCtx.filled++;
+  if(puzzleCtx.filled >= puzzleCtx.total){
+    setTimeout(onPuzzleComplete, 260);
+  }
+}
+
+function onPuzzleComplete(){
+  setDone(puzzleCtx.themeId, puzzleCtx.diffId, puzzleCtx.itemId);
+  sndWin();
+  spawnConfetti();
+  const theme = getTheme(state.themeId);
+  const item = theme.items[state.levelIndex];
+  document.getElementById('win-sub').textContent = '你拼好了「'+item.name+'」，真厉害！';
+  document.getElementById('win-modal').classList.add('show');
+}
+
+function spawnConfetti(){
+  const emojis = ['⭐','🎉','✨','🌟','🎊'];
+  for(let i=0;i<18;i++){
+    const span = document.createElement('div');
+    span.className = 'confetti';
+    span.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    span.style.left = (Math.random()*100)+'vw';
+    span.style.fontSize = (18+Math.random()*16)+'px';
+    const dur = 1.2 + Math.random()*0.8;
+    span.style.animationDuration = dur+'s';
+    document.body.appendChild(span);
+    setTimeout(()=>span.remove(), dur*1000+100);
+  }
+}
+
+/* ---- 重新开始（重新打乱当前题目） ---- */
+function restartCurrentPuzzle(){
+  startPuzzle();
+}
+
+/* ======================================================
+   7. 事件绑定
+   ====================================================== */
+document.getElementById('btn-mute-home').addEventListener('click', toggleMute);
+document.getElementById('btn-mute-puzzle').addEventListener('click', toggleMute);
+
+document.getElementById('btn-back-diff').addEventListener('click', ()=>{
+  showScreen('home');
+});
+document.getElementById('btn-back-levels').addEventListener('click', ()=>{
+  renderDifficulty();
+  showScreen('difficulty');
+});
+document.getElementById('btn-back-puzzle').addEventListener('click', ()=>{
+  renderLevels();
+  showScreen('levels');
+});
+document.getElementById('btn-reshuffle').addEventListener('click', restartCurrentPuzzle);
+
+document.getElementById('btn-replay').addEventListener('click', ()=>{
+  document.getElementById('win-modal').classList.remove('show');
+  restartCurrentPuzzle();
+});
+document.getElementById('btn-to-levels').addEventListener('click', ()=>{
+  document.getElementById('win-modal').classList.remove('show');
+  renderLevels();
+  showScreen('levels');
+});
+document.getElementById('btn-next-level').addEventListener('click', ()=>{
+  document.getElementById('win-modal').classList.remove('show');
+  const theme = getTheme(state.themeId);
+  state.levelIndex = (state.levelIndex + 1) % theme.items.length;
+  startPuzzle();
+});
+
+window.addEventListener('resize', ()=>{
+  if(screens.puzzle.classList.contains('active') && puzzleCtx){
+    // 简单起见：窗口尺寸变化时重建当前拼图布局（不打乱已完成状态要求不高，直接重开）
+    restartCurrentPuzzle();
+  }
+});
+
+document.body.addEventListener('pointerdown', ensureAudio, { once:true });
+
+/* ======================================================
+   8. 启动
+   ====================================================== */
+updateMuteButtons();
+renderHome();
+showScreen('home');
+
+})();
+</script>
+</body>
+</html>
